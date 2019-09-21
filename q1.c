@@ -40,9 +40,6 @@ int main(int argc, char *argv[]){
             printf("deu merda\n");
             return -1;
         }
-        if(contador == 100){
-            pthread_exit(NULL);
-        }
     }
     for(i=0; i<n; i++){
         pthread_join(thread[i], NULL);
