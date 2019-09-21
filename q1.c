@@ -9,7 +9,6 @@ pthread_mutex_t mymutex = PTHREAD_MUTEX_INITIALIZER;
 void *conta(void *threadid){
     long tid = *((long *)threadid);
     while(1){
-        
         pthread_mutex_lock(&mymutex);
         if(contador == 1000000){
             if(acabou1 == 1){
