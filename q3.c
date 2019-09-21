@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <math.h>
 
-#define NUM_VARIAVEIS 3
+#define NUM_VARIAVEIS 2
 #define P 50
 double x[NUM_VARIAVEIS][P];
-double b[NUM_VARIAVEIS] = {7, -8, 6};
-double a[NUM_VARIAVEIS][NUM_VARIAVEIS] = {10, 2, 1, 1, 5, 1, 2, 3, 10};
+double b[NUM_VARIAVEIS] = {11, 13};
+double a[NUM_VARIAVEIS][NUM_VARIAVEIS] = {2, 1, 5, 7};
 int **respo;
 int NUM_THREADS;
 pthread_barrier_t barrier;
@@ -27,7 +27,6 @@ void *conta(void *threadid){
                 }
             }
             x[novoId][k+1] = (1/a[novoId][novoId])*(b[novoId] - somatorio);
-            
             contador++;
             if(contador > NUM_VARIAVEIS){
                 break;
@@ -74,11 +73,13 @@ int main(int argc, char *argv[]){
         pthread_create(&thread[i], NULL, conta, (void*)ids[i]);
         
     }
-    for(i = 0; i < NUM_THREADS; i++) {
+    int numerito = NUM_THREADS;
+    for(i = 0; i < numerito; i++) {
+        printf("%i\n", numerito);
         pthread_join(thread[i],NULL);
     }
-    for(i=0; i<NUM_VARIAVEIS; i++){
-        printf("%.2lf ", x[i][P-1]);
+    for(i = 0; i < NUM_VARIAVEIS; i++) {
+        printf("%lf ", x[i][P-1]);
     }
     printf("\n");
     pthread_barrier_destroy(&barrier);
