@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
-#define linhas 4
+#define linhas 3
 #define colunas 4
 #define linhas2 4
-#define colunas2 4
+#define colunas2 2
 
 typedef struct ponto{
     int index;
@@ -13,14 +13,14 @@ typedef struct ponto{
 
 ponto matrizesparsa[linhas][colunas] = {{{0,2}, {1,1}, {-1,-1}}, 
                                         {{0,-1}, {1,2}, {2,-1}, {-1,-1}},
-                                        {{1,-1}, {2,2}, {3,-1}, {-1,-1}}, 
-                                        {{2,-1}, {3,2}, {-1,-1}}};
-ponto matrizesparsa2[linhas2][colunas2] = {{{0,1}, {-1,1}}, 
+                                        {{1,-1}, {2,2}, {3,-1}, {-1,-1}}};
+
+ponto matrizesparsa2[linhas2][colunas2] = {{{0,1},{-1,1}}, 
                                         {{-1,-1}},
                                         {{-1,-1}}, 
-                                        {{-1,-1}}};
-int vetorcomum[linhas] = {2, 1, 1, 1};
-int matrizcomum[linhas][colunas] = {{1, 1, 1, 1}, {1, 2, 1, 1}, {3, 4, 2, 1}, {1, 1, 1, 1}};
+                                        {{1,2},{-1,-1}}};
+int vetorcomum[linhas] = {2, 1, 1};
+int matrizcomum[linhas][colunas] = {{1, 1, 1, 1}, {1, 2, 1, 1}, {3, 4, 2, 1}};
 int resultadoop1[linhas];
 int resultadoop2[linhas][colunas] = {0};
 int resultadoop3[linhas][colunas] = {0};
@@ -60,7 +60,7 @@ void *oper1(){
 void *linhacoluna2(void *numero){
     long linha = *((long *)numero);
     int j = 0;
-    for(j=0; j<colunas; j++){
+    for(j=0; j<colunas2; j++){
         int k = 0;
         while(1){
             if(matrizesparsa[linha][k].index == -1){
@@ -93,7 +93,7 @@ void *oper2(){
 void *linhacoluna3(void *numero){
     long linha = *((long *)numero);
     int j = 0;
-    for(j=0; j<colunas; j++){
+    for(j=0; j<colunas2; j++){
         int k = 0;
         while(1){
             if(matrizesparsa[linha][k].index == -1){
@@ -106,11 +106,11 @@ void *linhacoluna3(void *numero){
                 if(matrizesparsa2[matrizesparsa[linha][k].index][l].index == -1){
                     break;
                 }
-                if(matrizesparsa2[matrizesparsa[linha][k].index][l].index == matrizesparsa[linha][k].index){
+                if(matrizesparsa2[matrizesparsa[linha][k].index][l].index == j){
                     coluna = 0;
                     valor = matrizesparsa2[matrizesparsa[linha][k].index][l].numero;
                     printf("%i %i\n", matrizesparsa[linha][k].index, l);
-                    break; 
+                    break;
                 }
                 l++;
             }
@@ -151,7 +151,7 @@ int main(){
     pthread_join(op3, NULL);
     int i, j;
     for(i=0; i<linhas; i++){
-        for(j=0; j<colunas; j++){
+        for(j=0; j<colunas2; j++){
             printf("%i ", resultadoop3[i][j]);
         }
         printf("\n");
