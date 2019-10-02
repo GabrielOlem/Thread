@@ -28,6 +28,7 @@ int T;
 usuario *vetor;
 pthread_mutex_t verarquivos;
 int lidos[100];
+double soma = 0;
 
 void *thread(){
     int con = 0;
@@ -65,18 +66,67 @@ void *thread(){
         while(fscanf(arq, " %s %s %i %lf", lido.nome, lido.id, &lido.lastacess, &lido.pont) != EOF){
             int a = atoi(lido.id);
             vetor[a] = lido;
+            //printf("%s\n", lido.nome);
         }
         fclose(arq);
     }
 }
-
+void *threadescreve(){
+    int con = 0;
+    while(1){
+        int i;
+        int arquivoaserlido = -1;
+        for(i=0; i<A; i++){
+            pthread_mutex_lock(&verarquivos);
+            if(lidos[i] == 0){
+                lidos[i] = 1;
+                arquivoaserlido = i;
+                pthread_mutex_unlock(&verarquivos);
+                break;
+            }
+            pthread_mutex_unlock(&verarquivos);
+        }
+        if(arquivoaserlido == -1){
+            pthread_exit(NULL);
+        }
+        arquivoaserlido++;
+        FILE *arq;
+        char nomearq[100] = "banco";
+        char *inteiro;
+        inteiro = itoa(arquivoaserlido, 10);
+        strcat(nomearq, inteiro);
+        strcat(nomearq, ".txt");
+        arq = fopen(nomearq, "r");
+        if(arq == NULL){
+            printf("NAO VAI DAR NAO BAMBAM\n");
+            pthread_exit(NULL);
+        }
+        usuario lido;
+        int c;
+        char linha[200];
+        while(fscanf(arq, "%s %s %i %lf", lido.nome, lido.id, &lido.lastacess, &lido.pont) != EOF){
+            if((double)lido.lastacess/(lido.pont * lido.pont) > 2*soma){
+                printf("%s\n", lido.nome);
+            }
+        }
+        fclose(arq);
+    }
+}
+void *te(){
+    printf("va");
+    pthread_exit(NULL);
+}
 int main(int argc, char *argv[]){
     scanf("%i %i %i", &N, &A, &T);
     vetor = (usuario*)malloc(N*sizeof(usuario));
-    pthread_t threads[T];
     int i;
+    pthread_t threads[T+1];
+    pthread_attr_t atributes;
+    pthread_attr_init(&atributes);
+    pthread_attr_setdetachstate(&atributes, PTHREAD_CREATE_JOINABLE);
+    
     for(i=0; i<T; i++){
-        int rc = pthread_create(&threads[i], NULL, thread, NULL);
+        int rc = pthread_create(&threads[i], &atributes, thread, NULL);
         if(rc){
             printf("TEM CARBURADOR?\n");
             pthread_exit(NULL);
@@ -85,16 +135,15 @@ int main(int argc, char *argv[]){
     for(i=0; i<T; i++){
         pthread_join(threads[i], NULL);
     }
-    double soma = 0;
     for(int i=1; i<=N; i++){
         soma += vetor[i].lastacess/(vetor[i].pont*vetor[i].pont);
     }
     soma /= N;
-    printf("a %.2lf\n", soma);
-    for(int i=1; i<=N; i++){
-        if(vetor[i].lastacess/(vetor[i].pont*vetor[i].pont) > 2*soma){
-            printf("%s\n", vetor[i].nome);
-        }
+    printf("%.2lf\n", soma);
+    for(i=0; i<A; i++){
+        lidos[i] = 0;
     }
+    pthread_t a;
+    pthread_create(&a, NULL, te, NULL);
     pthread_exit(NULL);
 }
