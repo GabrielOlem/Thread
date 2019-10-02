@@ -27,7 +27,7 @@ int A;
 int T;
 usuario *vetor;
 pthread_mutex_t verarquivos;
-int lidos[100] = {0};
+int lidos[100];
 
 void *thread(){
     int con = 0;
@@ -85,8 +85,16 @@ int main(int argc, char *argv[]){
     for(i=0; i<T; i++){
         pthread_join(threads[i], NULL);
     }
+    double soma = 0;
     for(int i=1; i<=N; i++){
-        printf("%s %s %i %lf\n", vetor[i].nome, vetor[i].id, vetor[i].lastacess, vetor[i].pont);
+        soma += vetor[i].lastacess/(vetor[i].pont*vetor[i].pont);
+    }
+    soma /= N;
+    printf("a %.2lf\n", soma);
+    for(int i=1; i<=N; i++){
+        if(vetor[i].lastacess/(vetor[i].pont*vetor[i].pont) > 2*soma){
+            printf("%s\n", vetor[i].nome);
+        }
     }
     pthread_exit(NULL);
 }
