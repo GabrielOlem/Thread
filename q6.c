@@ -6,42 +6,71 @@
 
 typedef struct parametro{
     int valor;
-    void*(*func_ptr)(void*);
+    int id;
+    void*(*func_ptr)(int);
 }parametro;
+
 pthread_mutex_t mutexes[TAM_buffer];
+pthread_mutex_t mutexFila;
+pthread_cond_t cheio = PTHREAD_COND_INITIALIZER;
 
 int bufferRes[TAM_buffer];
-int bufferFila[TAM_buffer];
+parametro bufferFila[TAM_buffer];
+int contadorBuffer=0;
+int amount = 0;
 
-int contador=0;
-void *funexec(void* para){
-    parametro prm = *((parametro*)para);
-    printf("a %i\n", prm.valor);
+void *funexec(int valor){
+    printf("ca %i\n", valor);
     pthread_exit(NULL);
 }
 
-void *pegarResultadoExecucao(void *id){
+int pegarResultadoExecucao(void *id){
     long prm = *((long*)id);
+    int ret;
     pthread_mutex_lock(&mutexes[prm]);
     printf("valor %i\n", bufferRes[prm]);
+    ret = bufferRes[prm];
     pthread_mutex_unlock(&mutexes[prm]);
-    pthread_exit(NULL);
+    return ret;
 }
-void *funcao(void*para){
+int agendarExecucao(void*para){
     parametro prm = *((parametro*)para);
-    pthread_t a;
-    printf("a\n");
-    pthread_create(&a, NULL, prm.func_ptr(para), NULL);
-    pthread_join(a, NULL);
-    pthread_exit(NULL);
+    pthread_mutex_lock(&mutexFila);
+    bufferFila[contadorBuffer] = prm;
+    prm.id = contadorBuffer;
+    contadorBuffer++;
+    amount++;
+    printf("%i\n", contadorBuffer);
+    pthread_mutex_unlock(&mutexFila);
+    return prm.id;
+}
+void *despacha(){
+    pthread_t threads[nThreads];
+    int contador = 0;
+    while(1){
+        pthread_mutex_lock(&mutexFila);
+        if(amount == 0){
+            pthread_cond_wait(&cheio, &mutexFila);
+        }
+        pthread_create(&threads[contador], NULL, bufferFila[amount-1].func_ptr(bufferFila[amount-1].valor), NULL);
+        pthread_join(threads[contador], NULL);
+        amount--;
+        contador++;
+        printf("teste\n");
+        pthread_mutex_unlock(&mutexFila);
+    }
 }
 int main(){
-
-    pthread_t teste;
-    parametro *a;
-    a->valor = 14;
-    a->func_ptr = funexec;
-    pthread_create(&teste, NULL, funcao, (void*)a);
-    pthread_join(teste, NULL);
+    pthread_t despachante;
+    parametro teste;
+    teste.func_ptr = funexec;
+    teste.valor = 666;
+    teste.id = agendarExecucao(&teste);
+    teste.func_ptr = funexec;
+    teste.valor = 665;
+    teste.id = agendarExecucao(&teste);
+    int i;
+    pthread_create(&despachante, NULL, despacha, NULL);
+    pthread_join(despachante, NULL);
     pthread_exit(NULL);
 }
