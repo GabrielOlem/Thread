@@ -64,27 +64,30 @@ int agendarExecucao(void*para){
     return prm.id;
 }
 void *despacha(){
-    pthread_t threads[nThreads];
+    pthread_t threads;
     int contador = 0;
     int atual = 0;
     while(1){
         pthread_mutex_lock(&mutexFila);
+
         if(atual >= contadorBuffer){
             pthread_cond_wait(&cheio, &mutexFila);
         }
-        pthread_create(&threads[contador], NULL, thread, (void*)&bufferFila[atual]);
+        pthread_create(&threads, NULL, thread, (void*)&bufferFila[atual]);
+        pthread_join(threads, NULL);
         contador++;
         atual++;
+
         pthread_mutex_unlock(&mutexFila);
     }
 }
 int main(){
     pthread_t despachante;
     parametro teste;
-    memset(bufferRes, -1, 100);
+    memset(bufferRes, -1, 100*sizeof(int));
     int i;
     pthread_create(&despachante, NULL, despacha, NULL);
-    for(i = 0; i<26; i++){
+    for(i = 0; i<100; i++){
         teste.func_ptr = funexec;
         teste.valor = i;
         teste.id = agendarExecucao(&teste);
