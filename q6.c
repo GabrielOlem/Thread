@@ -7,7 +7,7 @@
 typedef struct parametro{
     int valor;
     int id;
-    void*(*func_ptr)(int);
+    void*(*func_ptr)(void *);
 }parametro;
 
 pthread_mutex_t mutexes[TAM_buffer];
@@ -19,58 +19,69 @@ parametro bufferFila[TAM_buffer];
 int contadorBuffer=0;
 int amount = 0;
 
-void *funexec(int valor){
-    printf("ca %i\n", valor);
+void *funexec(void * a){
+    parametro b = *(parametro *)a;
+    pthread_mutex_lock(&mutexes[b.id]);
+    printf("ca %i %i\n", b.id, b.valor);
+    bufferRes[b.id] = b.valor + 10;
+    pthread_mutex_unlock(&mutexes[b.id]);
     pthread_exit(NULL);
 }
 
-int pegarResultadoExecucao(void *id){
-    long prm = *((long*)id);
+int pegarResultadoExecucao(int id){
     int ret;
-    pthread_mutex_lock(&mutexes[prm]);
-    printf("valor %i\n", bufferRes[prm]);
-    ret = bufferRes[prm];
-    pthread_mutex_unlock(&mutexes[prm]);
+    pthread_mutex_lock(&mutexes[id]);
+
+    printf("valor %i\n", bufferRes[id]);
+    ret = bufferRes[id];
+
+    pthread_mutex_unlock(&mutexes[id]);
     return ret;
 }
 int agendarExecucao(void*para){
     parametro prm = *((parametro*)para);
+
     pthread_mutex_lock(&mutexFila);
-    bufferFila[contadorBuffer] = prm;
+    
     prm.id = contadorBuffer;
+    bufferFila[contadorBuffer] = prm;
+    printf("%i\n", prm.id);
     contadorBuffer++;
     amount++;
-    printf("%i\n", contadorBuffer);
+    pthread_cond_signal(&cheio);
     pthread_mutex_unlock(&mutexFila);
     return prm.id;
 }
 void *despacha(){
     pthread_t threads[nThreads];
     int contador = 0;
+    int atual = 0;
     while(1){
         pthread_mutex_lock(&mutexFila);
-        if(amount == 0){
+        if(atual >= amount){
+            printf("testa\n");
             pthread_cond_wait(&cheio, &mutexFila);
         }
-        pthread_create(&threads[contador], NULL, bufferFila[amount-1].func_ptr(bufferFila[amount-1].valor), NULL);
-        pthread_join(threads[contador], NULL);
-        amount--;
+        pthread_create(&threads[contador], NULL, bufferFila[atual].func_ptr, (void*)&bufferFila[atual]);
         contador++;
-        printf("teste\n");
+        printf("nem chega %i\n", atual);
+        atual++;
         pthread_mutex_unlock(&mutexFila);
     }
 }
 int main(){
     pthread_t despachante;
     parametro teste;
-    teste.func_ptr = funexec;
-    teste.valor = 666;
-    teste.id = agendarExecucao(&teste);
-    teste.func_ptr = funexec;
-    teste.valor = 665;
-    teste.id = agendarExecucao(&teste);
+    
     int i;
     pthread_create(&despachante, NULL, despacha, NULL);
+    for(i = 0; i<4; i++){
+        teste.func_ptr = funexec;
+        teste.valor = i;
+        teste.id = agendarExecucao(&teste);
+        pthread_cond_signal(&cheio);
+        printf("tinha isso la %i\n", pegarResultadoExecucao(teste.id));
+    }
     pthread_join(despachante, NULL);
     pthread_exit(NULL);
 }
