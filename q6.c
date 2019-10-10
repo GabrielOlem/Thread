@@ -9,7 +9,7 @@
 typedef struct parametro{
     int valor;
     int id;
-    void*(*func_ptr)(void *);
+    int(*func_ptr)(int);
 }parametro;
 
 pthread_mutex_t mutexes[TAM_buffer];
@@ -21,15 +21,20 @@ int bufferRes[TAM_buffer];
 parametro bufferFila[TAM_buffer];
 int contadorBuffer=0;
 int amount = 0;
+void *thread(void * para){
+    parametro b = *(parametro *)para;
 
-void *funexec(void * a){
-    parametro b = *(parametro *)a;
     pthread_mutex_lock(&mutexes[b.id]);
-    bufferRes[b.id] = b.valor + 10;
+
+    bufferRes[b.id] = b.func_ptr(b.valor);
+
     pthread_cond_signal(&result[b.id]);
     pthread_mutex_unlock(&mutexes[b.id]);
-
+    
     pthread_exit(NULL);
+}
+int funexec(int a){
+    return a + 10;;
 }
 
 int pegarResultadoExecucao(int id){
@@ -67,7 +72,7 @@ void *despacha(){
         if(atual >= contadorBuffer){
             pthread_cond_wait(&cheio, &mutexFila);
         }
-        pthread_create(&threads[contador], NULL, bufferFila[atual].func_ptr, (void*)&bufferFila[atual]);
+        pthread_create(&threads[contador], NULL, thread, (void*)&bufferFila[atual]);
         contador++;
         atual++;
         pthread_mutex_unlock(&mutexFila);
