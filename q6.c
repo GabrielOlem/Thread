@@ -10,13 +10,17 @@ typedef struct parametro{
     int valor;
     int id;
     int(*func_ptr)(int);
+    int aExec;
 }parametro;
 
 pthread_mutex_t mutexes[TAM_buffer];
 pthread_mutex_t mutexFila;
+pthread_mutex_t mutexVerifica;
+
 pthread_cond_t cheio;
 pthread_cond_t result[TAM_buffer];
 
+int checkThreads[nThreads];
 int bufferRes[TAM_buffer];
 parametro bufferFila[TAM_buffer];
 int contadorBuffer=0;
@@ -30,13 +34,24 @@ void *thread(void * para){
 
     pthread_cond_signal(&result[b.id]);
     pthread_mutex_unlock(&mutexes[b.id]);
+
+    pthread_mutex_lock(&mutexVerifica);
+    checkThreads[b.aExec] = 0;
+    printf("Sou a thread %i\n", b.aExec);
+    pthread_mutex_unlock(&mutexVerifica);
     
     pthread_exit(NULL);
 }
 int funexec(int a){
-    return a + 10;;
+    int i;
+    int c = 1;
+    int d = 2;
+    int j;
+    for(i=0; i<1e7; i++){
+        for(j=0; j<1e7; j++);
+    }
+    return a + 10;
 }
-
 int pegarResultadoExecucao(int id){
     int ret;
     pthread_mutex_lock(&mutexes[id]);
@@ -64,18 +79,34 @@ int agendarExecucao(void*para){
     return prm.id;
 }
 void *despacha(){
-    pthread_t threads;
-    int contador = 0;
+    pthread_t threads[nThreads];
     int atual = 0;
     while(1){
+        int i;
+        int aExec = -1;
+        while(1){
+            for(i=0; i<nThreads; i++){
+                pthread_mutex_lock(&mutexVerifica);
+                printf("quero ver isso aqui %i\n", i);
+                if(checkThreads[i] == 0){
+                    printf("\n");
+                    checkThreads[i] = 1;
+                    aExec = i;
+                    pthread_mutex_unlock(&mutexVerifica);
+                    break;
+                }
+                pthread_mutex_unlock(&mutexVerifica);
+            }
+            if(aExec != -1){
+                break;
+            }
+        }
         pthread_mutex_lock(&mutexFila);
-
         if(atual >= contadorBuffer){
             pthread_cond_wait(&cheio, &mutexFila);
         }
-        pthread_create(&threads, NULL, thread, (void*)&bufferFila[atual]);
-        pthread_join(threads, NULL);
-        contador++;
+        bufferFila[atual].aExec = aExec;
+        pthread_create(&threads[aExec], NULL, thread, (void*)&bufferFila[atual]);
         atual++;
 
         pthread_mutex_unlock(&mutexFila);
