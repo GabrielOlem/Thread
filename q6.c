@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define TAM_buffer 100
-#define nThreads 5
+#define nThreads 4
 
 typedef struct parametro{
     int valor;
@@ -36,27 +36,20 @@ void *thread(void * para){
     pthread_mutex_unlock(&mutexes[b.id]);
 
     pthread_mutex_lock(&mutexVerifica);
-    checkThreads[b.aExec] = 0;
     printf("Sou a thread %i\n", b.aExec);
+    checkThreads[b.aExec] = 0;
     pthread_mutex_unlock(&mutexVerifica);
     
     pthread_exit(NULL);
 }
 int funexec(int a){
-    int i;
-    int c = 1;
-    int d = 2;
-    int j;
-    for(i=0; i<1e7; i++){
-        for(j=0; j<1e7; j++);
-    }
     return a + 10;
 }
 int pegarResultadoExecucao(int id){
     int ret;
     pthread_mutex_lock(&mutexes[id]);
 
-    while(bufferRes[id] == -1){
+    if(bufferRes[id] == -1){
         pthread_cond_wait(&result[id], &mutexes[id]);
     }
     ret = bufferRes[id];
@@ -66,9 +59,9 @@ int pegarResultadoExecucao(int id){
 }
 int agendarExecucao(void*para){
     parametro prm = *((parametro*)para);
-
-    pthread_mutex_lock(&mutexFila);
     
+    pthread_mutex_lock(&mutexFila);
+
     prm.id = contadorBuffer;
     bufferFila[contadorBuffer] = prm;
     contadorBuffer++;
@@ -87,9 +80,7 @@ void *despacha(){
         while(1){
             for(i=0; i<nThreads; i++){
                 pthread_mutex_lock(&mutexVerifica);
-                printf("quero ver isso aqui %i\n", i);
                 if(checkThreads[i] == 0){
-                    printf("\n");
                     checkThreads[i] = 1;
                     aExec = i;
                     pthread_mutex_unlock(&mutexVerifica);
@@ -122,8 +113,8 @@ int main(){
         teste.func_ptr = funexec;
         teste.valor = i;
         teste.id = agendarExecucao(&teste);
-        printf("result %i\n", pegarResultadoExecucao(teste.id));
     }
+    printf("\n");
     pthread_join(despachante, NULL);
     pthread_exit(NULL);
 }
