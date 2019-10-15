@@ -33,10 +33,10 @@ void *thread(void * para){
     bufferRes[b.id] = b.func_ptr(b.valor);
 
     pthread_cond_signal(&result[b.id]);
+
     pthread_mutex_unlock(&mutexes[b.id]);
 
     pthread_mutex_lock(&mutexVerifica);
-    printf("Sou a thread %i\n", b.aExec);
     checkThreads[b.aExec] = 0;
     pthread_mutex_unlock(&mutexVerifica);
     
@@ -44,6 +44,9 @@ void *thread(void * para){
 }
 int funexec(int a){
     return a + 10;
+}
+int funexec2(int a){
+    return a + 100;
 }
 int pegarResultadoExecucao(int id){
     int ret;
@@ -53,19 +56,20 @@ int pegarResultadoExecucao(int id){
         pthread_cond_wait(&result[id], &mutexes[id]);
     }
     ret = bufferRes[id];
+    bufferRes[id] = -1;
 
     pthread_mutex_unlock(&mutexes[id]);
     return ret;
 }
 int agendarExecucao(void*para){
     parametro prm = *((parametro*)para);
-    
     pthread_mutex_lock(&mutexFila);
 
     prm.id = contadorBuffer;
     bufferFila[contadorBuffer] = prm;
     contadorBuffer++;
-    
+    contadorBuffer %= 100;
+
     pthread_cond_signal(&cheio);
 
     pthread_mutex_unlock(&mutexFila);
@@ -93,9 +97,13 @@ void *despacha(){
             }
         }
         pthread_mutex_lock(&mutexFila);
+        if(atual >= TAM_buffer){
+            atual = 0;
+        }
         if(atual >= contadorBuffer){
             pthread_cond_wait(&cheio, &mutexFila);
         }
+        
         bufferFila[atual].aExec = aExec;
         pthread_create(&threads[aExec], NULL, thread, (void*)&bufferFila[atual]);
         atual++;
@@ -109,10 +117,16 @@ int main(){
     memset(bufferRes, -1, 100*sizeof(int));
     int i;
     pthread_create(&despachante, NULL, despacha, NULL);
-    for(i = 0; i<100; i++){
-        teste.func_ptr = funexec;
+    for(i = 0; i<1000; i++){
+        if(i < TAM_buffer){
+            teste.func_ptr = funexec;
+        }
+        else{
+            teste.func_ptr = funexec2;
+        }
         teste.valor = i;
         teste.id = agendarExecucao(&teste);
+        printf("res %i ", pegarResultadoExecucao(teste.id));
     }
     printf("\n");
     pthread_join(despachante, NULL);
