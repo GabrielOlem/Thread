@@ -1,3 +1,4 @@
+//A API foi implementada de maneira que, assim que um usuário solicita um agendamento ele precisa pegar logo o resultado, pois como contamos com um buffer limitado, existe o risco do seu dado ser sobrescrito pelo dado de outro usuário
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -38,6 +39,7 @@ void *thread(void * para){
     pthread_mutex_unlock(&mutexes[b.id]);//Destravamos o mutex
 
     pthread_mutex_lock(&mutexVerifica);//Avisamos que essa thread já acabou sua execução
+    printf("sou thread %i\n", b.aExec);
     checkThreads[b.aExec] = 0;
     pthread_mutex_unlock(&mutexVerifica);
     
@@ -55,7 +57,7 @@ int pegarResultadoExecucao(int id){
     int ret;
     pthread_mutex_lock(&mutexes[id]);//Travamos para verificar o resultado
 
-    if(bufferRes[id] == -1){//Se não tiver o resultado ainda esperamos o resultado
+    if(bufferRes[id] == -1){//Se não tiver o resultado ainda, esperamos o resultado
         pthread_cond_wait(&result[id], &mutexes[id]);
     }
     ret = bufferRes[id];//Guardamos o resultado
@@ -71,7 +73,13 @@ int agendarExecucao(void*para){
     prm.id = contadorBuffer;//Guardamos o id daquela execução
     bufferFila[contadorBuffer] = prm; //Guardamos a execução na fila
     contadorBuffer++;
-    contadorBuffer %= 100;
+    if(contadorBuffer >= TAM_buffer){//Se o contador chegou ao máximo resetamos a fila e o contador
+        int i = 0;
+        for(i = 0; i<TAM_buffer; i++){
+            bufferRes[i] = -1;
+        }
+        contadorBuffer = 0;
+    }
 
     pthread_cond_signal(&cheio);//Avisamos a despachante que ela precisa executar
 
