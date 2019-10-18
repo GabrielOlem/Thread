@@ -17,6 +17,7 @@ void *ehPrimo(void *numero){
     int i=0;
     for(i=2; i< teste; i++){
         if(teste % i == 0){//Se o número não for primo, saímos
+            printf(" %i %i\n", teste, i);
            pthread_exit(NULL); 
         }
     }
@@ -47,15 +48,15 @@ void *loopp(void *estrutura){
     int i;
     pthread_t verificaprimo;
     for(i = teste.a; i<teste.b; i++){//Loop que rodamos o intervalo e verificando se aquele número é primo
-        if(i == 1){//Se for 1 não fazemos nada
-            continue;
+
+        if(i >= 2){
+            int rc = pthread_create(&verificaprimo, NULL, ehPrimo, (void *)&i);//Criamos a thread que verifica se é primo
+            if(rc){
+                printf("Não foi possível criar a thread\n");
+                pthread_exit(NULL);
+            }
+            pthread_join(verificaprimo, NULL);//Esperamos a thread terminar
         }
-        int rc = pthread_create(&verificaprimo, NULL, ehPrimo, (void *)&i);//Criamos a thread que verifica se é primo
-        if(rc){
-            printf("Não foi possível criar a thread\n");
-            pthread_exit(NULL);
-        }
-        pthread_join(verificaprimo, NULL);//Esperamos a thread terminar
     }
     pthread_exit(NULL);
 }
@@ -64,15 +65,14 @@ void *loopd(void *estrutura){
     int i;
     pthread_t verificadivisor;
     for(i = teste.a; i<teste.b; i++){
-        if(i == 1){
-            continue;
+        if(i >= 2){
+            int rc = pthread_create(&verificadivisor, NULL, dividir, (void *)&i);
+            if(rc){
+                printf("Não foi possível criar a thread\n");
+                pthread_exit(NULL);
+            }
+            pthread_join(verificadivisor, NULL);
         }
-        int rc = pthread_create(&verificadivisor, NULL, dividir, (void *)&i);
-        if(rc){
-            printf("Não foi possível criar a thread\n");
-            pthread_exit(NULL);
-        }
-        pthread_join(verificadivisor, NULL);
     }
     pthread_exit(NULL);
 }
